@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dessert Menu Generator · Crispy Cookies</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #fdf6f8;
+      color: #4a2535;
+      min-height: 100vh;
+      padding: 2rem 1rem 3rem;
+    }
+    .wrap { max-width: 720px; margin: 0 auto; }
+
+    /* Header */
+    .header { text-align: center; margin-bottom: 2rem; }
+    .logo { font-size: 26px; color: #c2728a; font-weight: 600; letter-spacing: 0.5px; }
+    .tagline { font-size: 14px; color: #a08090; margin-top: 6px; }
+    .header-divider { border: none; border-top: 1px solid #f0d0dc; margin: 14px auto; width: 60px; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 10px; margin-bottom: 1.5rem; }
+    .tab {
+      flex: 1; padding: 10px; text-align: center; border-radius: 10px;
+      border: 1px solid #e8c8d4; background: #fff8fa; font-size: 14px;
+      color: #a08090; cursor: pointer; transition: all 0.15s;
+    }
+    .tab.active { background: #f4d0db; color: #9a4060; border-color: #dba8c0; font-weight: 600; }
+    .tab:hover:not(.active) { background: #fff0f5; }
+
+    /* Controls */
+    .controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 1.25rem; }
+    @media (max-width: 500px) { .controls { grid-template-columns: 1fr; } }
+    .ctrl-group label {
+      display: block; font-size: 11px; color: #a08090; margin-bottom: 6px;
+      text-transform: uppercase; letter-spacing: 0.7px; font-weight: 600;
+    }
+    select {
+      width: 100%; padding: 10px 34px 10px 12px; border-radius: 8px;
+      border: 1px solid #e8c8d4; background: #fff8fa; font-size: 14px;
+      color: #5a3a45; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23c2728a' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center; cursor: pointer;
+    }
+    select:focus { outline: none; border-color: #c2728a; box-shadow: 0 0 0 3px #f4d0db; }
+
+    /* Count slider */
+    .count-row { display: flex; align-items: center; gap: 14px; margin-bottom: 1.25rem; }
+    .count-row label {
+      font-size: 11px; color: #a08090; text-transform: uppercase;
+      letter-spacing: 0.7px; font-weight: 600; white-space: nowrap;
+    }
+    input[type=range] { flex: 1; accent-color: #c2728a; cursor: pointer; height: 4px; }
+    .count-val { font-size: 15px; font-weight: 600; color: #c2728a; min-width: 22px; text-align: center; }
+
+    /* Generate button */
+    .gen-btn {
+      width: 100%; padding: 13px; background: #c2728a;
+      color: #fff; border: none; border-radius: 10px; font-size: 15px;
+      font-weight: 600; cursor: pointer; letter-spacing: 0.3px; transition: background 0.15s, transform 0.1s;
+    }
+    .gen-btn:hover { background: #a85a74; }
+    .gen-btn:active { transform: scale(0.98); }
+
+    /* Results */
+    .results { margin-top: 1.5rem; }
+    .result-meta {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 12px;
+    }
+    .result-label { font-size: 13px; color: #a08090; }
+    .save-btn {
+      font-size: 12px; padding: 6px 14px; border: 1px solid #e8c8d4;
+      background: #fff; color: #c2728a; border-radius: 20px; cursor: pointer; transition: background 0.12s;
+    }
+    .save-btn:hover { background: #fff0f5; }
+
+    /* Cards */
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+    .card {
+      background: #ffffff; border: 1px solid #f0c8d8; border-radius: 12px;
+      padding: 16px 16px 14px; transition: border-color 0.15s;
+    }
+    .card:hover { border-color: #d4a0b8; }
+    .card-tag {
+      display: inline-block; font-size: 11px; padding: 3px 10px; border-radius: 20px;
+      background: #f4d0db; color: #9a4060; font-weight: 600; margin-bottom: 8px;
+    }
+    .card-name { font-size: 14px; font-weight: 600; color: #4a2535; line-height: 1.4; margin-bottom: 5px; }
+    .card-desc { font-size: 12px; color: #8a6070; line-height: 1.55; }
+
+    /* Empty state */
+    .empty { text-align: center; padding: 3rem 1rem; color: #c0a0b0; font-size: 14px; }
+    .empty-icon { font-size: 32px; margin-bottom: 10px; }
+
+    /* Saved section */
+    .saved-label {
+      font-size: 11px; color: #a08090; text-transform: uppercase;
+      letter-spacing: 0.7px; font-weight: 600; margin-bottom: 10px;
+    }
+    .saved-actions { display: flex; gap: 10px; margin-bottom: 14px; }
+    .action-btn {
+      font-size: 12px; padding: 7px 14px; border: 1px solid #e8c8d4;
+      background: #fff; color: #c2728a; border-radius: 20px; cursor: pointer; transition: background 0.12s;
+    }
+    .action-btn:hover { background: #fff0f5; }
+    .action-btn.danger { color: #c25050; border-color: #f0c8c8; }
+    .action-btn.danger:hover { background: #fff5f5; }
+    .saved-list { display: flex; flex-direction: column; gap: 8px; }
+    .saved-item {
+      background: #fff8fa; border: 1px solid #eed8e4; border-radius: 10px;
+      padding: 10px 14px; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;
+    }
+    .saved-item-name { font-size: 14px; font-weight: 600; color: #4a2535; margin-bottom: 2px; }
+    .saved-item-meta { font-size: 12px; color: #a08090; }
+    .del-btn {
+      font-size: 12px; color: #c2728a; background: none; border: 1px solid #e8c8d4;
+      border-radius: 6px; cursor: pointer; padding: 3px 8px; white-space: nowrap; flex-shrink: 0;
+    }
+    .del-btn:hover { background: #fff0f5; }
+    .no-saved { font-size: 13px; color: #c0a0b0; font-style: italic; padding: 2rem 0; text-align: center; }
+    .copy-confirm { font-size: 13px; color: #c2728a; text-align: center; margin-top: 10px; min-height: 20px; }
+
+    /* Divider & footer */
+    .divider { border: none; border-top: 1px solid #f0d8e0; margin: 2rem 0 1.25rem; }
+    .footer { text-align: center; }
+    .footer a { font-size: 13px; color: #c2728a; text-decoration: none; border-bottom: 1px solid #e8c8d4; padding-bottom: 1px; }
+    .footer a:hover { color: #9a4060; border-color: #c2728a; }
+    .footer-note { font-size: 11px; color: #c0a0b0; margin-top: 6px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <div class="logo">Crispy Cookies</div>
+    <hr class="header-divider">
+    <div class="tagline">Weekly Dessert Menu Generator</div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" id="tab-gen" onclick="switchTab('gen')">Generate Ideas</div>
+    <div class="tab" id="tab-saved" onclick="switchTab('saved')">Saved Ideas</div>
+  </div>
+
+  <!-- Generator Panel -->
+  <div id="panel-gen">
+    <div class="controls">
+      <div class="ctrl-group">
+        <label>Season</label>
+        <select id="sel-season">
+          <option value="all">All Seasons</option>
+          <option value="spring">Spring</option>
+          <option value="summer">Summer</option>
+          <option value="fall">Fall</option>
+          <option value="winter">Winter</option>
+        </select>
+      </div>
+      <div class="ctrl-group">
+        <label>Holiday</label>
+        <select id="sel-holiday">
+          <option value="none">No Holiday</option>
+          <option value="valentines">Valentine's Day</option>
+          <option value="easter">Easter</option>
+          <option value="mothersday">Mother's Day</option>
+          <option value="july4">4th of July</option>
+          <option value="halloween">Halloween</option>
+          <option value="thanksgiving">Thanksgiving</option>
+          <option value="christmas">Christmas</option>
+          <option value="hanukkah">Hanukkah</option>
+          <option value="newyear">New Year's</option>
+          <option value="stpatricks">St. Patrick's Day</option>
+        </select>
+      </div>
+      <div class="ctrl-group">
+        <label>Category</label>
+        <select id="sel-cat">
+          <option value="all">All Categories</option>
+          <option value="cookies">Cookies</option>
+          <option value="breads">Breads</option>
+          <option value="cakes">Cakes</option>
+          <option value="brownies">Brownies &amp; Bars</option>
+          <option value="cupcakes">Cupcakes</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="count-row">
+      <label>Ideas to Generate</label>
+      <input type="range" min="3" max="12" step="1" value="6" id="count-slider"
+             oninput="document.getElementById('count-disp').textContent=this.value">
+      <span class="count-val" id="count-disp">6</span>
+    </div>
+
+    <button class="gen-btn" onclick="generate()">Generate Dessert Ideas</button>
+
+    <div class="results" id="results">
+      <div class="empty">
+        <div class="empty-icon">🧁</div>
+        Choose your filters above and tap Generate to get ideas!
+      </div>
+    </div>
+  </div>
+
+  <!-- Saved Panel -->
+  <div id="panel-saved" style="display:none;">
+    <div class="saved-label">Your Saved Ideas</div>
+    <div class="saved-actions">
+      <button class="action-btn" onclick="copyToClipboard()">Copy List to Clipboard</button>
+      <button class="action-btn danger" onclick="clearAll()">Clear All</button>
+    </div>
+    <div id="saved-list-wrap"></div>
+    <div class="copy-confirm" id="copy-confirm"></div>
+  </div>
+
+  <hr class="divider">
+  <div class="footer">
+    <a href="https://crispicookies.com" target="_blank">crispicookies.com</a>
+    <div class="footer-note">Custom dessert menus for local clients</div>
+  </div>
+
+</div>
+
+<script>
+const DATA = {
+  cookies: [
+    { name: "Brown Butter Chocolate Chip", desc: "Classic cookie with nutty depth from browned butter and sea salt finish.", seasons: ["all"], holidays: ["none","christmas","newyear"] },
+    { name: "Lemon Lavender Shortbread", desc: "Buttery shortbread with fresh lemon zest and dried lavender.", seasons: ["spring","summer"], holidays: ["none","easter","mothersday"] },
+    { name: "Strawberry Jam Thumbprint", desc: "Almond cookie filled with homemade strawberry jam center.", seasons: ["spring","summer"], holidays: ["none","valentines","easter","mothersday"] },
+    { name: "Pumpkin Snickerdoodle", desc: "Soft pumpkin cookie rolled in cinnamon sugar.", seasons: ["fall"], holidays: ["none","halloween","thanksgiving"] },
+    { name: "Gingerbread Cutouts", desc: "Classic spiced gingerbread with royal icing decoration.", seasons: ["winter"], holidays: ["none","christmas","hanukkah"] },
+    { name: "Red Velvet Crinkle", desc: "Powdered sugar crinkle with deep red color and cream cheese drizzle.", seasons: ["all"], holidays: ["none","valentines","christmas"] },
+    { name: "Maple Pecan Sandies", desc: "Crumbly pecan cookie with real maple syrup glaze.", seasons: ["fall","winter"], holidays: ["none","thanksgiving","christmas"] },
+    { name: "Lemon Poppy Seed Drop", desc: "Bright citrus cookies with crunchy poppy seeds and lemon glaze.", seasons: ["spring","summer"], holidays: ["none","easter","mothersday"] },
+    { name: "Mint Chocolate Chip", desc: "Cool peppermint flavor with dark chocolate chips.", seasons: ["winter","spring"], holidays: ["none","christmas","stpatricks"] },
+    { name: "Patriotic Sugar Cookie", desc: "Frosted sugar cookies decorated in red, white and blue.", seasons: ["summer"], holidays: ["none","july4"] },
+    { name: "Candy Corn Sugar Cookie", desc: "Sugar cookie with candy corn colors and spooky icing.", seasons: ["fall"], holidays: ["none","halloween"] },
+    { name: "Almond Biscotti", desc: "Crisp twice-baked Italian cookies perfect for dipping.", seasons: ["all"], holidays: ["none","christmas","hanukkah","newyear"] },
+    { name: "Carrot Cake Cookie", desc: "Chewy spiced carrot cookie with cream cheese frosting.", seasons: ["spring","fall"], holidays: ["none","easter"] },
+    { name: "Hot Cocoa Cookie", desc: "Fudgy chocolate cookie topped with mini marshmallows.", seasons: ["winter"], holidays: ["none","christmas","hanukkah","newyear"] },
+    { name: "Pistachio Rose Shortbread", desc: "Elegant shortbread with pistachios and rose water glaze.", seasons: ["spring"], holidays: ["none","mothersday","valentines","easter"] },
+    { name: "S'mores Cookie Bar", desc: "Graham cracker base, chocolate chip cookie, toasted marshmallow top.", seasons: ["summer","fall"], holidays: ["none"] },
+    { name: "Cranberry White Chocolate Chip", desc: "Tart dried cranberries with creamy white chocolate in a soft cookie.", seasons: ["fall","winter"], holidays: ["none","thanksgiving","christmas","hanukkah"] },
+    { name: "Funfetti Birthday Cookie", desc: "Thick sugar cookie packed with sprinkles for celebration.", seasons: ["all"], holidays: ["none","newyear"] },
+    { name: "Churro Snickerdoodle", desc: "Cinnamon-sugar coated cookie with a hint of vanilla.", seasons: ["all"], holidays: ["none"] },
+    { name: "Shamrock Sugar Cookie", desc: "Green-tinted sugar cookie with clover decoration.", seasons: ["spring"], holidays: ["none","stpatricks"] }
+  ],
+  breads: [
+    { name: "Cinnamon Swirl Loaf", desc: "Soft enriched bread with a thick cinnamon sugar spiral.", seasons: ["fall","winter"], holidays: ["none","thanksgiving","christmas"] },
+    { name: "Lemon Blueberry Quick Bread", desc: "Moist quick bread bursting with fresh blueberries and lemon.", seasons: ["spring","summer"], holidays: ["none","easter","mothersday"] },
+    { name: "Pumpkin Chocolate Chip Loaf", desc: "Tender pumpkin bread studded with chocolate chips.", seasons: ["fall"], holidays: ["none","halloween","thanksgiving"] },
+    { name: "Cranberry Orange Loaf", desc: "Tart cranberries and orange zest in a moist quick bread.", seasons: ["fall","winter"], holidays: ["none","thanksgiving","christmas","hanukkah"] },
+    { name: "Honey Cardamom Bread", desc: "Lightly sweet bread with floral cardamom and honey glaze.", seasons: ["spring","all"], holidays: ["none","easter"] },
+    { name: "Banana Walnut Bread", desc: "Classic banana bread loaded with toasted walnuts.", seasons: ["all"], holidays: ["none"] },
+    { name: "Chocolate Babka", desc: "Swirled chocolate-filled enriched dough with streusel topping.", seasons: ["all"], holidays: ["none","christmas","hanukkah"] },
+    { name: "Apple Cider Donut Loaf", desc: "Reduced cider loaf with cinnamon sugar crust.", seasons: ["fall"], holidays: ["none","halloween","thanksgiving"] },
+    { name: "Strawberry Cream Cheese Bread", desc: "Tender loaf with swirls of cream cheese and strawberry jam.", seasons: ["spring","summer"], holidays: ["none","mothersday","valentines"] },
+    { name: "Gingerbread Loaf", desc: "Deeply spiced molasses loaf with cream cheese glaze.", seasons: ["winter","fall"], holidays: ["none","christmas","thanksgiving"] },
+    { name: "Matcha White Chocolate Loaf", desc: "Earthy matcha quick bread dotted with white chocolate chips.", seasons: ["spring","summer"], holidays: ["none"] },
+    { name: "Eggnog Quick Bread", desc: "Holiday-spiced loaf with real eggnog and nutmeg sugar top.", seasons: ["winter"], holidays: ["none","christmas","newyear"] },
+    { name: "Lavender Honey Pound Cake Loaf", desc: "Dense butter loaf with lavender infusion and honey drizzle.", seasons: ["spring","summer"], holidays: ["none","mothersday","easter"] },
+    { name: "Shamrock Soda Bread", desc: "Irish soda bread with green-flecked herbs and raisins.", seasons: ["spring"], holidays: ["none","stpatricks"] }
+  ],
+  cakes: [
+    { name: "Strawberry Chiffon Cake", desc: "Light chiffon layers with fresh strawberry whipped cream.", seasons: ["spring","summer"], holidays: ["none","valentines","mothersday","easter"] },
+    { name: "Pumpkin Spice Layer Cake", desc: "Three-layer pumpkin cake with brown butter cream cheese frosting.", seasons: ["fall"], holidays: ["none","halloween","thanksgiving"] },
+    { name: "Lemon Elderflower Cake", desc: "Light lemon sponge with elderflower Swiss meringue buttercream.", seasons: ["spring","summer"], holidays: ["none","easter","mothersday"] },
+    { name: "Chocolate Caramel Layer Cake", desc: "Rich chocolate cake with salted caramel filling and ganache drip.", seasons: ["all"], holidays: ["none","halloween","christmas","valentines","newyear"] },
+    { name: "Hummingbird Cake", desc: "Banana pineapple spiced cake with coconut cream cheese frosting.", seasons: ["spring","summer"], holidays: ["none","easter","mothersday"] },
+    { name: "Candy Cane Cheesecake", desc: "Creamy cheesecake with peppermint swirl and Oreo crust.", seasons: ["winter"], holidays: ["none","christmas","newyear"] },
+    { name: "Peach Upside Down Cake", desc: "Caramelized fresh peach topping over vanilla butter cake.", seasons: ["summer"], holidays: ["none"] },
+    { name: "Apple Cinnamon Bundt", desc: "Moist apple-laden bundt with cream cheese glaze.", seasons: ["fall"], holidays: ["none","halloween","thanksgiving"] },
+    { name: "Red Velvet Cake", desc: "Classic red velvet with white cream cheese frosting.", seasons: ["all"], holidays: ["none","valentines","christmas"] },
+    { name: "Coconut Layer Cake", desc: "Fluffy white cake with coconut pastry cream and toasted coconut.", seasons: ["spring","summer"], holidays: ["none","easter","mothersday"] },
+    { name: "Yule Log Cake", desc: "Chocolate sponge roll decorated as a festive winter log.", seasons: ["winter"], holidays: ["none","christmas"] },
+    { name: "Mango Passion Fruit Cake", desc: "Tropical layers with mango curd and passion fruit mousse.", seasons: ["summer"], holidays: ["none","july4","newyear"] },
+    { name: "Carrot Cake with Walnuts", desc: "Spiced carrot cake with pineapple, walnuts, and cream cheese.", seasons: ["spring","fall"], holidays: ["none","easter","thanksgiving"] },
+    { name: "Tiramisu Cake", desc: "Espresso-soaked layers with mascarpone cream and cocoa dusting.", seasons: ["all"], holidays: ["none","newyear","valentines","christmas"] },
+    { name: "Shamrock Mint Chip Cake", desc: "Green-tinted mint cake layers with chocolate ganache.", seasons: ["spring"], holidays: ["none","stpatricks"] },
+    { name: "Patriotic Poke Cake", desc: "White cake with red and blue jello, whipped cream topping.", seasons: ["summer"], holidays: ["none","july4"] },
+    { name: "Spiced Cranberry Upside Down Cake", desc: "Caramelized cranberry topping on warm spiced cake.", seasons: ["fall","winter"], holidays: ["none","thanksgiving","christmas","hanukkah"] }
+  ],
+  brownies: [
+    { name: "Classic Fudge Brownies", desc: "Dense, ultra-fudgy dark chocolate brownies with crinkle tops.", seasons: ["all"], holidays: ["none"] },
+    { name: "Salted Caramel Brownies", desc: "Fudgy brownie swirled with homemade salted caramel.", seasons: ["all"], holidays: ["none","halloween","thanksgiving","christmas"] },
+    { name: "Peppermint Patty Brownies", desc: "Chocolate brownies layered with peppermint cream center.", seasons: ["winter"], holidays: ["none","christmas","newyear"] },
+    { name: "Lemon Bars", desc: "Tart lemon curd over buttery shortbread with powdered sugar.", seasons: ["spring","summer"], holidays: ["none","easter","mothersday"] },
+    { name: "Strawberry Cheesecake Bars", desc: "Cream cheese swirl brownies with strawberry jam ribbons.", seasons: ["spring","summer"], holidays: ["none","valentines","mothersday","easter"] },
+    { name: "Pumpkin Cheesecake Bars", desc: "Swirled pumpkin and cream cheese over graham crust.", seasons: ["fall"], holidays: ["none","halloween","thanksgiving"] },
+    { name: "Pecan Pie Bars", desc: "Gooey pecan filling over buttery shortbread crust.", seasons: ["fall","winter"], holidays: ["none","thanksgiving","christmas"] },
+    { name: "Birthday Cake Blondies", desc: "Brown butter blondies loaded with rainbow sprinkles.", seasons: ["all"], holidays: ["none","newyear"] },
+    { name: "Espresso Toffee Blondies", desc: "Coffee-spiked blondies with English toffee bits.", seasons: ["all"], holidays: ["none","christmas","newyear"] },
+    { name: "Cranberry Walnut Bars", desc: "Oat crust bars with cranberry jam and walnut crumble top.", seasons: ["fall","winter"], holidays: ["none","thanksgiving","christmas","hanukkah"] },
+    { name: "Raspberry Almond Bars", desc: "Almond shortbread layered with raspberry preserves and streusel.", seasons: ["spring","summer"], holidays: ["none","valentines","easter","mothersday"] },
+    { name: "Patriotic Cookie Bars", desc: "Sugar cookie bars topped with red and blue berries and cream.", seasons: ["summer"], holidays: ["none","july4"] },
+    { name: "S'mores Brownie Bars", desc: "Graham cracker crust, fudgy brownie, toasted marshmallow top.", seasons: ["summer","fall"], holidays: ["none","halloween"] },
+    { name: "Green Velvet Bars", desc: "Green-tinted cheesecake bars with white chocolate drizzle.", seasons: ["spring"], holidays: ["none","stpatricks"] }
+  ],
+  cupcakes: [
+    { name: "Champagne Cupcakes", desc: "Light vanilla cupcake with champagne buttercream and gold sugar.", seasons: ["winter","all"], holidays: ["none","newyear","valentines"] },
+    { name: "Lemon Raspberry Cupcakes", desc: "Lemon cake with fresh raspberry filling and lemon buttercream.", seasons: ["spring","summer"], holidays: ["none","easter","mothersday"] },
+    { name: "Pumpkin Maple Cupcakes", desc: "Spiced pumpkin cupcake with maple cream cheese frosting.", seasons: ["fall"], holidays: ["none","halloween","thanksgiving"] },
+    { name: "Red Velvet Cupcakes", desc: "Classic red velvet with cream cheese frosting and red crumble.", seasons: ["all"], holidays: ["none","valentines","christmas"] },
+    { name: "Chocolate Peppermint Cupcakes", desc: "Rich chocolate cupcake with peppermint whipped cream topping.", seasons: ["winter"], holidays: ["none","christmas","hanukkah"] },
+    { name: "Carrot Cake Cupcakes", desc: "Spiced carrot cupcake with walnut cream cheese frosting.", seasons: ["spring","fall"], holidays: ["none","easter","thanksgiving"] },
+    { name: "Strawberry Shortcake Cupcakes", desc: "Vanilla cupcake with strawberry compote and whipped cream.", seasons: ["spring","summer"], holidays: ["none","valentines","mothersday","easter"] },
+    { name: "Peach Cobbler Cupcakes", desc: "Brown sugar cupcake with peach filling and streusel topping.", seasons: ["summer","fall"], holidays: ["none"] },
+    { name: "Chocolate Caramel Cupcakes", desc: "Dark chocolate cupcake filled with caramel and chocolate ganache swirl.", seasons: ["all"], holidays: ["none","halloween","christmas","valentines"] },
+    { name: "Mango Coconut Cupcakes", desc: "Coconut cupcake with mango curd filling and toasted coconut.", seasons: ["summer"], holidays: ["none","july4"] },
+    { name: "Eggnog Cupcakes", desc: "Nutmeg cupcake with spiced eggnog buttercream.", seasons: ["winter"], holidays: ["none","christmas","newyear"] },
+    { name: "Mint Chocolate Cupcakes", desc: "Chocolate cupcake with green mint buttercream and chocolate coins.", seasons: ["spring","winter"], holidays: ["none","stpatricks","christmas"] },
+    { name: "Spooky Black Velvet Cupcakes", desc: "Dark cocoa cupcake with black buttercream and orange sugar.", seasons: ["fall"], holidays: ["none","halloween"] },
+    { name: "Patriotic Funfetti Cupcakes", desc: "Vanilla cupcake with red, white and blue swirl frosting.", seasons: ["summer"], holidays: ["none","july4"] },
+    { name: "Honey Lavender Cupcakes", desc: "Floral lavender cupcake with honey cream cheese frosting.", seasons: ["spring","summer"], holidays: ["none","easter","mothersday"] },
+    { name: "Brown Butter Chai Cupcakes", desc: "Warm chai spiced cupcake with brown butter vanilla frosting.", seasons: ["fall","winter"], holidays: ["none","thanksgiving","christmas"] },
+    { name: "Pink Lemonade Cupcakes", desc: "Pink lemon cupcake with pink lemonade buttercream and sprinkles.", seasons: ["spring","summer"], holidays: ["none","valentines","mothersday"] }
+  ]
+};
+
+const CAT_LABELS = { cookies: "Cookies", breads: "Breads", cakes: "Cakes", brownies: "Brownies & Bars", cupcakes: "Cupcakes" };
+let saved = JSON.parse(localStorage.getItem("cc_saved") || "[]");
+let currentResults = [];
+
+function generate() {
+  const season = document.getElementById("sel-season").value;
+  const holiday = document.getElementById("sel-holiday").value;
+  const cat = document.getElementById("sel-cat").value;
+  const count = parseInt(document.getElementById("count-slider").value);
+  const cats = cat === "all" ? Object.keys(DATA) : [cat];
+  let pool = [];
+
+  cats.forEach(c => {
+    DATA[c].forEach(item => {
+      const seasonOk = season === "all" || item.seasons.includes("all") || item.seasons.includes(season);
+      const holidayOk = holiday === "none" ? item.holidays.includes("none") : item.holidays.includes(holiday);
+      if (seasonOk && holidayOk) pool.push({ ...item, cat: c });
+    });
+  });
+
+  if (!pool.length) {
+    document.getElementById("results").innerHTML = '<div class="empty"><div class="empty-icon">🔍</div>No matches found for that combination. Try adjusting your filters!</div>';
+    return;
+  }
+
+  const shuffled = pool.sort(() => Math.random() - 0.5).slice(0, Math.min(count, pool.length));
+  currentResults = shuffled;
+
+  const holidayEl = document.getElementById("sel-holiday");
+  const seasonLabel = season === "all" ? "All Seasons" : season.charAt(0).toUpperCase() + season.slice(1);
+  const holidayLabel = holidayEl.options[holidayEl.selectedIndex].text;
+
+  let html = `<div class="result-meta"><div class="result-label">${shuffled.length} ideas · ${seasonLabel} · ${holidayLabel}</div><button class="save-btn" onclick="saveAll()">Save All</button></div><div class="cards">`;
+  shuffled.forEach(item => {
+    html += `<div class="card"><span class="card-tag">${CAT_LABELS[item.cat]}</span><div class="card-name">${item.name}</div><div class="card-desc">${item.desc}</div></div>`;
+  });
+  html += "</div>";
+  document.getElementById("results").innerHTML = html;
+}
+
+function saveAll() {
+  currentResults.forEach(item => {
+    if (!saved.find(s => s.name === item.name)) saved.push(item);
+  });
+  localStorage.setItem("cc_saved", JSON.stringify(saved));
+  alert("Ideas saved! Check the Saved Ideas tab.");
+}
+
+function renderSaved() {
+  const wrap = document.getElementById("saved-list-wrap");
+  if (!saved.length) {
+    wrap.innerHTML = '<div class="no-saved">No saved ideas yet. Generate some and tap Save All!</div>';
+    return;
+  }
+  let html = '<div class="saved-list">';
+  saved.forEach((item, i) => {
+    html += `<div class="saved-item"><div><div class="saved-item-name">${item.name}</div><div class="saved-item-meta">${CAT_LABELS[item.cat]} &mdash; ${item.desc.substring(0, 60)}...</div></div><button class="del-btn" onclick="deleteSaved(${i})">Remove</button></div>`;
+  });
+  html += "</div>";
+  wrap.innerHTML = html;
+}
+
+function deleteSaved(i) {
+  saved.splice(i, 1);
+  localStorage.setItem("cc_saved", JSON.stringify(saved));
+  renderSaved();
+}
+
+function clearAll() {
+  if (confirm("Clear all saved ideas?")) {
+    saved = [];
+    localStorage.setItem("cc_saved", JSON.stringify(saved));
+    renderSaved();
+  }
+}
+
+function copyToClipboard() {
+  if (!saved.length) { alert("Nothing saved yet!"); return; }
+  const text = saved.map(s => `• ${s.name} (${CAT_LABELS[s.cat]})`).join("\n");
+  navigator.clipboard.writeText(text).then(() => {
+    const el = document.getElementById("copy-confirm");
+    el.textContent = "Copied to clipboard!";
+    setTimeout(() => el.textContent = "", 2500);
+  });
+}
+
+function switchTab(t) {
+  document.getElementById("panel-gen").style.display = t === "gen" ? "" : "none";
+  document.getElementById("panel-saved").style.display = t === "saved" ? "" : "none";
+  document.getElementById("tab-gen").className = "tab" + (t === "gen" ? " active" : "");
+  document.getElementById("tab-saved").className = "tab" + (t === "saved" ? " active" : "");
+  if (t === "saved") renderSaved();
+}
+</script>
+</body>
+</html>
